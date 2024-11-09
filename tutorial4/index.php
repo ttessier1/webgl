@@ -2,6 +2,7 @@
 	<head>
 		<title>WebGl Samples</title>
 		<link rel="stylesheet" href="../css/main.css" />
+		<link rel="stylesheet" href="css/main.css" />
 		<script type="text/javascript" src="../js/main.js"></script>
 		<script type="text/javascript" src="js/tutorial.js"></script>
 		<script id="vertex-shader-1" type="notjs">
@@ -55,7 +56,24 @@ varying vec2 v_texCoord;
 void main() {
    gl_FragColor = texture2D(u_image, v_texCoord).bgra;
 }
+		</script>
+		<script id="fragment-shader-2d" type="x-shader/x-fragment">
+precision mediump float;
 
+// our texture
+uniform sampler2D u_image;
+uniform vec2 u_textureSize;
+
+varying vec2 v_texCoord;
+
+void main(){
+	// compute 1 pixel in texture coordinates.
+	vec2 onePixel = vec2(1.0,1.0)/u_textureSize;
+	gl_FragColor = (
+		texture2D(u_image, v_texCoord)+
+		texture2D(u_image, v_texCoord + vec2(onePixel.x, 0.0))+
+		texture2D(u_image, v_texCoord+vec2(-onePixel.x,0.0))) / 3.0;
+}
 
 		</script>
 	</head>
@@ -81,6 +99,9 @@ void main() {
 		<div id="Css" class="tabContent">
 			<h3>Css</h3>
 			<iframe width="100%" height="600" src="https://www.swhistlesoft.com/demo/paste/paste-14/abcdefabcdefabcdefababcdefabcdef"></iframe>	
+		</div>
+		<div id="log">
+
 		</div>
 	</body>
 </html>

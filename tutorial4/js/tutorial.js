@@ -7,12 +7,76 @@ window.addEventListener("load",function(e){
 });
 function log(message){
 	var l = window.location;
+	var lw = document.getElementById("log");
 	if(l.hash== "#debug"){
 		console.log(message);
 	}
+	if(lw){
+		var e = document.createElement("p");
+		e.innerText = message ;
+		lw.appendChild(e);
+	}
+}
+function error(message){
+	var l = window.location;
+	var lw = document.getElementById("log");
+	if(l.hash== "#debug"){
+		console.trace();
+		console.error(message);
+	}
+	if(lw){
+		var e = document.createElement("p");
+		e.className = "error";
+		e.innerText = message ;
+		lw.appendChild(e);
+	}
+
+}
+function warning(message){
+	var l = window.location;
+	var lw = document.getElementById("log");
+	if(l.hash=="#debug"){
+		console.warn(message);
+	}
+	if(lw){
+		var e = document.createElement("p");
+		e.className="warning";
+		e.innerText= message;
+		lw.appendChild(e);
+	}
+}
+function info(message){
+	var l = window.location;
+	var lw = document.getElementById("log");
+	if(l.hash=="#debug"){
+		console.info(message);
+	}
+	if(lw){
+		var e = document.createElement("p");
+		e.className="info";
+		e.innerText= message;
+		lw.appendChild(e);
+	}
+}
+function success(message){
+	var l = window.location;
+	var lw = document.getElementById("log");
+	if(l.hash=="#debug"){
+		console.info(message);
+	}
+	if(lw){
+		var e = document.createElement("p");
+		e.className="success";
+		e.innerText= message;
+		lw.appendChild(e);
+	}
 }
 function main(){
-
+	error("Error Sample Message");
+	warning("Warning Sample Message");
+	log("Log Sample Message");
+	info("Info Sample Message");
+	success("Success Sample Message");
 	var image = new Image();
 	image.src = "https://www.swhistlesoft.com/demo/webgl/tutorial4/img/leaves.jpg";
 	image.loaded = false;
@@ -20,29 +84,53 @@ function main(){
 		image.loaded = true;
 		log("Inside Main");	
 		const canvs= document.getElementById("canvs");
-		canvs.width = 400;
-		canvs.height = 300;
+		canvs.width = 480;
+		canvs.height = 360;
 		canvs.style.width = 400;
-		canvs.style.height = 300;
+		canvs.style.height = 360;
 		if(canvs){
-			log("Canvas obj is potentially valid");
+			success("Canvas obj is potentially valid");
 			const gl = canvs.getContext("webgl");
 			if(gl === null){
 				console.log("Unable to initialize");
 				return;
 			}
-			log("Gl Context Created");
+			success("Gl Context Created");
 			gl.clearColor(0.0,0.0,0.0,1.0);
 			gl.clear(gl.COLOR_BUFFER_BIT);
 	
 			var vertexShaderSource = document.getElementById("vertex-shader-1").text;
-			log("Vertex:"+vertexShaderSource);
-			var fragmentShaderSource = document.getElementById("fragment-shader-1").text;
-			log("Fragment:"+fragmentShaderSource);
+			if(!vertexShaderSource){
+				error("Failed to load Vertex Shader Source");
+				return;
+			}
+			info("Vertex:"+vertexShaderSource);
+			var fragmentShaderSource = document.getElementById("fragment-shader-2d").text;
+			if(!fragmentShaderSource){
+				error("Failed to get Fragment Shader Source");
+				return ;
+			}
+			info("Fragment:"+fragmentShaderSource);
 			var vertexShader = createShader(gl,gl.VERTEX_SHADER,vertexShaderSource);
+			if(!vertexShader){
+				error("Failed to create the vertex shader");
+				return;
+			}
+			success("Vertex Shader Created");
 			var fragmentShader = createShader(gl,gl.FRAGMENT_SHADER,fragmentShaderSource);
+			if(!fragmentShader){
+				error("Failed to create the fragment shader");
+				return;
+			}
+			success("Fragment Shader Created");
 
 			var program = createProgram(gl,vertexShader,fragmentShader);
+			if(!program){
+				error("Failed to link the program");
+				return;
+			}
+			success("Program Linked");
+
 			var positionLocation = gl.getAttribLocation(program, "a_position");
 			var texcoordLocation = gl.getAttribLocation(program, "a_texCoord");
 
@@ -81,6 +169,7 @@ function main(){
 
 			// lookup uniforms
 			var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+			var textureSizeLocation = gl.getUniformLocation(program, "u_textureSize");
 
 			//webglUtils.resizeCanvasToDisplaySize(gl.canvas);
 
@@ -125,6 +214,9 @@ function main(){
 			// set the resolution
 			gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
 
+			// set the size of the image
+			gl.uniform2f(textureSizeLocation, image.width, image.height);
+
 			// Draw the rectangle.
 			var primitiveType = gl.TRIANGLES;
 			var offset = 0;
@@ -132,7 +224,7 @@ function main(){
 			gl.drawArrays(primitiveType, offset, count);
 
 		}else{
-			log("Canvas is invalid");
+			error("Canvas is invalid");
 		}
 	}
 }
@@ -141,11 +233,12 @@ function createShader(gl,type,source){
 	var shader = gl.createShader(type);
 	gl.shaderSource(shader,source);
 	gl.compileShader(shader);
-	var success = gl.getShaderParameter(shader,gl.COMPILE_STATUS);
-	if(success){
+	var succeeded = gl.getShaderParameter(shader,gl.COMPILE_STATUS);
+	if(succeeded){
+		success("Shader Compiled");
 		return shader;
 	}
-	log(gl.getShaderInfoLog(shader));
+	error(gl.getShaderInfoLog(shader));
 	gl.deleteShader(shader);
 }
 
@@ -154,11 +247,12 @@ function createProgram(gl,vertexShader,fragmentShader){
 	gl.attachShader(program,vertexShader);
 	gl.attachShader(program,fragmentShader);
 	gl.linkProgram(program);
-	var success = gl.getProgramParameter(program,gl.LINK_STATUS);
-	if(success){
+	var succeeded = gl.getProgramParameter(program,gl.LINK_STATUS);
+	if(succeeded){
+		success("Program Linked");
 		return program;
 	}
-	log(gl.getPrograminfoLog(program));		
+	error(gl.getPrograminfoLog(program));		
 	gl.deleteProgram(program);
 }
 
