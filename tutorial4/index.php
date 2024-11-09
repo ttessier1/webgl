@@ -72,9 +72,35 @@ void main(){
 	gl_FragColor = (
 		texture2D(u_image, v_texCoord)+
 		texture2D(u_image, v_texCoord + vec2(onePixel.x, 0.0))+
-		texture2D(u_image, v_texCoord+vec2(-onePixel.x,0.0))) / 3.0;
+		texture2D(u_image, v_texCoord + vec2(-onePixel.x,0.0))) / 3.0;
 }
 
+		</script>
+		<script id="fragment-shader-kernel" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform sampler2D u_image;
+uniform vec2 u_textureSize;
+uniform float u_kernel[9];
+uniform float u_kernelWeight;
+
+varying vec2 v_texCoord;
+
+void main(){
+	vec2 onePixel = vec2(1.0,1.0) / u_textureSize;
+	vec4 colorSum =
+		texture2D(u_image, v_texCoord + onePixel * vec2(-1,-1))*u_kernel[0]+
+		texture2D(u_image, v_texCoord + onePixel * vec2( 0,-1))*u_kernel[1]+
+		texture2D(u_image, v_texCoord + onePixel * vec2( 1,-1))*u_kernel[2]+
+		texture2D(u_image, v_texCoord + onePixel * vec2(-1, 0))*u_kernel[3]+
+		texture2D(u_image, v_texCoord + onePixel * vec2( 0, 0))*u_kernel[4]+
+		texture2D(u_image, v_texCoord + onePixel * vec2( 1, 0))*u_kernel[5]+
+		texture2D(u_image, v_texCoord + onePixel * vec2(-1, 1))*u_kernel[6]+
+		texture2D(u_image, v_texCoord + onePixel * vec2( 0, 1))*u_kernel[7]+
+		texture2D(u_image, v_texCoord + onePixel * vec2( 1, 1))*u_kernel[8];
+
+	gl_FragColor = vec4((colorSum/u_kernelWeight).rgb, 1.0); 
+}
 		</script>
 	</head>
 	<body>
@@ -87,6 +113,9 @@ void main(){
 		<div id="Canvas" class="tabContent">
 			<h3>Canvas</h3>
 			<canvas id="canvs" width="800" height="600"></canvas>	
+			<div id="uiContainer">
+				<div id="ui"></div>
+			</div>
 		</div>
 		<div id="Html" class="tabContent">
 			<h3>Html</h3>
