@@ -21,5 +21,17 @@
 			<h3>Basic WebGl Render 2D Image</h3>
 			<p>This tutorial output is an extension to the WebGl Basic rendering an image</p>
 		</div></a>
+		<a href="tutorial5/index.php"><div class="panel">
+			<h3>Object File Parser - I </h3>
+			<p>This tutorial output is an extension to the WebGl Basic rendering an image and includes an obj file parser</p>
+		</div></a>
+		<a href="tutorial6/index.php"><div class="panel">
+			<h3>Object File Parser- II </h3>
+			<p>This tutorial output is an extension to the Object File Parser and includes advanced parsing. The advanced parsing allows for multiple objects within object file along with multiple materials</p>
+		</div></a>
+		<a href="tutorial7/index.php"><div class="panel">
+			<h3>Object File Parser - III</h3>
+			<p>This tutorial output is an extension to the Object File Parser and includes advanced parsing.</p>
+		</div></a>
 	</body>
 </html>

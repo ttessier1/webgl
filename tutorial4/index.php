@@ -119,15 +119,15 @@ void main(){
 		</div>
 		<div id="Html" class="tabContent">
 			<h3>Html</h3>
-			<iframe width="100%" height="600" src="https://www.swhistlesoft.com/demo/paste/paste-16/abcdefabcdefabcdefababcdefabcdef"></iframe>	
+			<iframe width="100%" height="600" src="https://www.swhistlesoft.com/demo/paste/paste-1a/abcdefabcdefabcdefababcdefabcdef"></iframe>	
 		</div>
 		<div id="Javascript" class="tabContent">
 			<h3>Javascript</h3>
-			<iframe width="100%" height="600" src="https://www.swhistlesoft.com/demo/paste/paste-15/abcdefabcdefabcdefababcdefabcdef"></iframe>	
+			<iframe width="100%" height="600" src="https://www.swhistlesoft.com/demo/paste/paste-1b/abcdefabcdefabcdefababcdefabcdef"></iframe>	
 		</div>
 		<div id="Css" class="tabContent">
 			<h3>Css</h3>
-			<iframe width="100%" height="600" src="https://www.swhistlesoft.com/demo/paste/paste-14/abcdefabcdefabcdefababcdefabcdef"></iframe>	
+			<iframe width="100%" height="600" src="https://www.swhistlesoft.com/demo/paste/paste-1c/abcdefabcdefabcdefababcdefabcdef"></iframe>	
 		</div>
 		<div id="log">
 
