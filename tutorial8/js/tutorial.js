@@ -72,7 +72,7 @@ function success(message){
 	}
 }
 
-async function downloadAndParseObjFile(url){
+async function downloadAndParseObjFile(gl,url){
 	try {
 		const response = await fetch(url);
 		if (!response.ok) {
@@ -95,9 +95,28 @@ async function downloadAndParseObjFile(url){
 		}));
 		console.log("MatTexts:"+matTexts);
 		const materials = MtlParser.Parse(matTexts.join("\n"));
+		const textures = {
+			defaultWhite: createPixelTexture(gl,[255,255,255,255]),
+		};
+		for ( const material of Object.values(materials)){
+			Object.entries(material)
+			.filter(([key]) => key.endsWith("Map"))
+			.forEach(([key, filename]) => {
+				let texture = textures[filename];
+				if(!texture){
+					var l = window.location;
+					const textureHref = l.protocol+"//"+l.host+"/"+l.pathname.substr(0,l.pathname.lastIndexOf("/")+1)+filename;
+					texture  = createTexture(gl, textureHref);
+					textures[filename] = texture;
+				}
+				material[key] = texture;
+			});
+
+		}
 		return { 
 			obj: obj,
-			materials: materials
+			materials: materials,
+			textures: textures,
 		};
 	}catch (err) {
 		error(err.message);
@@ -141,10 +160,16 @@ function main(){
 			error("Url not understood:"+url);
 			return;
 		}
-		url += "chair.obj";
+		url += "windmill.obj";
 		info("Url:"+url);
+
+		const gl = canvs.getContext("webgl");
+		if(gl === null || gl.constructor.name != "WebGLRenderingContext" ){
+			error("Unable to initialize");
+			return;
+		}
 	
-		downloadAndParseObjFile(url) .then((result) => {
+		downloadAndParseObjFile(gl,url) .then((result) => {
 			//const obj = ObjectParser.Parse(objFile);
 			//const matTexts = await Promise.all(obj.materialLibs.map(async filename =>{
 			//	const matHref = new Url(filename,url).href;
@@ -159,22 +184,19 @@ function main(){
 			console.log(result);
 			const obj = result.obj;
 			const materials = result.materials;
-			const gl = canvs.getContext("webgl");
-			if(gl === null || gl.constructor.name != "WebGLRenderingContext" ){
-				error("Unable to initialize");
-				return;
-			}
+			const textures = result.textures;
+			
 			success("Gl Context Created:"+gl.constructor.name);
 			gl.clearColor(0.0,1.0,0.0,1.0);
 			gl.clear(gl.COLOR_BUFFER_BIT);
 	
-			var vertexShaderSource = document.getElementById("vertex-shader-id").text;
+			var vertexShaderSource = document.getElementById("vertex-shader-text-id").text;
 			if(!vertexShaderSource){
 				error("Failed to load Vertex Shader Source");
 				return;
 			}
 			info("Vertex:"+vertexShaderSource+":"+vertexShaderSource.constructor.name);
-			var fragmentShaderSource = document.getElementById("fragment-shader-id").text;
+			var fragmentShaderSource = document.getElementById("fragment-shader-text-id").text;
 			if(!fragmentShaderSource){
 				error("Failed to get Fragment Shader Source");
 				return ;
@@ -212,6 +234,16 @@ function main(){
 			}
 			success("Program Linked:"+program.constructor.name);
 			
+			const defaultMaterial = {
+				diffuse: [1,1,1],
+				diffuseMap: textures.defaultWhite,
+				ambient:[0,0,0],
+				specular:[1,1,1],
+				shininess:400,
+				opacity:1,
+			};
+	
+
 			const parts =obj.geometries.map(({material,data})=>{
 				if(data.color){
 					if(data.position.length === data.color.length){
@@ -225,7 +257,10 @@ function main(){
 				}
 				const bufferInfo = createBufferInfoFromArrays(gl,data);
 				return {
-					material:materials[material],
+					material:{
+						...defaultMaterial,
+						...materials[material],
+					},
 					bufferInfo,
 				};
 			});
@@ -401,6 +436,11 @@ function createAttributeSetters(gl, program) {
 	}
 	return attribSetters;
 }
+function getBindPointForSamplerType(gl, type) {
+	if (type === gl.SAMPLER_2D)   return gl.TEXTURE_2D;        // eslint-disable-line
+	if (type === gl.SAMPLER_CUBE) return gl.TEXTURE_CUBE_MAP;  // eslint-disable-line
+	return undefined;
+}
 
 function createUniformSetters(gl,program){
 	let textureUnit=0;
@@ -473,21 +513,31 @@ function createUniformSetters(gl,program){
 				gl.uniformMatrix4fv(location,false,v);
 			};
 		}
-		if((type === gl.SAMPLER_2D || type === gl.SAMPLER_CUBE) && isArray){
+		if ((type === gl.SAMPLER_2D || type === gl.SAMPLER_CUBE) && isArray) {
 			const units = [];
-			for(let ii = 0; ii < info.size; ++i){
+			for (let ii = 0; ii < info.size; ++ii) {
 				units.push(textureUnit++);
 			}
-			return function(bindPoint,unit){
-				return function(textures){
-					textures.foreach(function(texture,index){
-						gl.activeTexture(gl.TEXTURE0+unit);
-						gl.bindTecture(bindPoint,texture);
+			return function(bindPoint, units) {
+				return function(textures) {
+					gl.uniform1iv(location, units);
+					textures.forEach(function(texture, index) {
+						gl.activeTexture(gl.TEXTURE0 + units[index]);
+						gl.bindTexture(bindPoint, texture);
 					});
 				};
-			}(getBindPointForSamplerType(gl,type),textureUnit++);
+			}(getBindPointForSamplerType(gl, type), units);
 		}
-		throw ( "Unknown Type:0x"+ type.toString(16));
+		if (type === gl.SAMPLER_2D || type === gl.SAMPLER_CUBE) {
+			return function(bindPoint, unit) {
+				return function(texture) {
+					gl.uniform1i(location, unit);
+					gl.activeTexture(gl.TEXTURE0 + unit);
+					gl.bindTexture(bindPoint, texture);
+				};
+			}(getBindPointForSamplerType(gl, type), textureUnit++);
+		}
+		throw ( "Unknown Type: for["+uniformInfo.name+"] 0x"+ type.toString(16));
 	} 
 		
 	const uniformSetters = {};
@@ -774,3 +824,36 @@ function getGeometriesExtents(geometries){
 		max:Array(3).fill(Number.NEGATIVE_INFINITY)
 	});
 }
+
+function createPixelTexture(gl,pixel){
+	const texture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D,texture);
+	gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(pixel));
+	return texture;
+}
+
+function createTexture(gl,url){
+	const texture = createPixelTexture(gl,[128,192,255,255]);
+	const image = new Image();
+	image.src = url;
+	image.addEventListener('load',function(){
+		info("Image Loaded:"+image.width + " "+ image.height + " " + image.src);
+		gl.bindTexture(gl.TEXTURE_2D,texture);
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
+		if(isPowerOf2(image.width)&&isPowerOf2(image.height)){
+			gl.generateMipmap(gl.TEXTURE_2D);
+		}else{
+			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+		}
+
+	});
+	return texture; // { texture: texture, image: image};
+}
+
+function isPowerOf2(value){
+	return (value & (value - 1)) === 0;
+}
+

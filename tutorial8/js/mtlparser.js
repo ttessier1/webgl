@@ -1,6 +1,9 @@
 window.MtlParser = (function(){
 
 	return {
+		parseMapArgs(unparsedArgs){
+			return unparsedArgs;
+		},
 
 		Parse:function(text){
 			const materials = {};
@@ -16,6 +19,9 @@ window.MtlParser = (function(){
 				Kd(parts){material.diffuse = parts.map(parseFloat);},
 				Ks(parts){material.specular = parts.map(parseFloat);},
 				Ke(parts){material.emissive = parts.map(parseFloat);},
+				map_Kd(parts,unparsedArgs){material.diffuseMap = MtlParser.parseMapArgs(unparsedArgs);},
+				map_Ns(parts,unparsedArgs){material.specularMap = MtlParser.parseMapArgs(unparsedArgs);},
+				map_Bump(parts,unparsedArgs){material.normalMap = MtlParser.parseMapArgs(unparsedArgs);},
 				Ni(parts){material.opticalDensity = parseFloat(parts[0]);},
 				d(parts){material.opacity = parseFloat(parts[0]);},
 				illum(parts){material.illum = parseInt(parts[0]);}, 
