@@ -97,6 +97,7 @@ async function downloadAndParseObjFile(gl,url){
 		const materials = MtlParser.Parse(matTexts.join("\n"));
 		const textures = {
 			defaultWhite: createPixelTexture(gl,[255,255,255,255]),
+			defaultNormal: createPixelTexture(gl,[127,127,255,0]),
 		};
 		for ( const material of Object.values(materials)){
 			Object.entries(material)
@@ -105,7 +106,7 @@ async function downloadAndParseObjFile(gl,url){
 				let texture = textures[filename];
 				if(!texture){
 					var l = window.location;
-					const textureHref = l.protocol+"//"+l.host+"/"+l.pathname.substr(0,l.pathname.lastIndexOf("/")+1)+filename;
+					const textureHref = l.protocol+"//"+l.host+"/"+l.pathname.substr(0,l.pathname.lastIndexOf("/")+1)+"obj/"+filename;
 					texture  = createTexture(gl, textureHref);
 					textures[filename] = texture;
 				}
@@ -160,7 +161,7 @@ function main(){
 			error("Url not understood:"+url);
 			return;
 		}
-		url += "windmill.obj";
+		url += "obj/windmill.obj";
 		info("Url:"+url);
 
 		const gl = canvs.getContext("webgl");
@@ -233,18 +234,32 @@ function main(){
 				return;
 			}
 			success("Program Linked:"+program.constructor.name);
+
+
+			// exaggerate specular
+			Object.values(materials).forEach(m => {
+				m.shininess = 25;
+				m.specular = [3, 2, 1];
+			});
 			
 			const defaultMaterial = {
 				diffuse: [1,1,1],
 				diffuseMap: textures.defaultWhite,
+				normalMap: textures.defaultNormal,
 				ambient:[0,0,0],
 				specular:[1,1,1],
+				specularMap: textures.defaultWhite,
 				shininess:400,
 				opacity:1,
 			};
 	
 
 			const parts =obj.geometries.map(({material,data})=>{
+				if( data.texcoord && data.normal){
+					data.tangent = generateTangents(data.position,data.texcoord);
+				}else{
+					data.tangent = { value: [1,0,0]};
+				}
 				if(data.color){
 					if(data.position.length === data.color.length){
 						data.color = {numComponents: 3, data:data.color};
@@ -272,7 +287,7 @@ function main(){
 					m4.scaleVector(range,0.5)),
 				-1);
 			const cameraTarget = [0,0,0];
-			const radius = m4.length(range)*1.2;
+			const radius = m4.length(range)*.5;
 			const cameraPosition = m4.addVectors(cameraTarget,[
 				0,
 				0,
@@ -313,6 +328,7 @@ function main(){
 					u_lightDirection: m4.normalize([-1,3,5]),
 					u_view: view,
 					u_projection: projection,
+					u_viewWorldPosition: cameraPosition,
 				};
 	
 	
@@ -857,3 +873,59 @@ function isPowerOf2(value){
 	return (value & (value - 1)) === 0;
 }
 
+function makeIndexIterator(indices) {
+  let ndx = 0;
+  const fn = () => indices[ndx++];
+  fn.reset = () => { ndx = 0; };
+  fn.numElements = indices.length;
+  return fn;
+}
+
+function makeUnindexedIterator(positions) {
+  let ndx = 0;
+  const fn = () => ndx++;
+  fn.reset = () => { ndx = 0; };
+  fn.numElements = positions.length / 3;
+  return fn;
+}
+
+const subtractVector2 = (a, b) => a.map((v, ndx) => v - b[ndx]);
+
+function generateTangents(position, texcoord, indices) {
+  const getNextIndex = indices ? makeIndexIterator(indices) : makeUnindexedIterator(position);
+  const numFaceVerts = getNextIndex.numElements;
+  const numFaces = numFaceVerts / 3;
+
+  const tangents = [];
+  for (let i = 0; i < numFaces; ++i) {
+    const n1 = getNextIndex();
+    const n2 = getNextIndex();
+    const n3 = getNextIndex();
+
+    const p1 = position.slice(n1 * 3, n1 * 3 + 3);
+    const p2 = position.slice(n2 * 3, n2 * 3 + 3);
+    const p3 = position.slice(n3 * 3, n3 * 3 + 3);
+
+    const uv1 = texcoord.slice(n1 * 2, n1 * 2 + 2);
+    const uv2 = texcoord.slice(n2 * 2, n2 * 2 + 2);
+    const uv3 = texcoord.slice(n3 * 2, n3 * 2 + 2);
+
+    const dp12 = m4.subtractVectors(p2, p1);
+    const dp13 = m4.subtractVectors(p3, p1);
+
+    const duv12 = subtractVector2(uv2, uv1);
+    const duv13 = subtractVector2(uv3, uv1);
+
+    const f = 1.0 / (duv12[0] * duv13[1] - duv13[0] * duv12[1]);
+    const tangent = Number.isFinite(f)
+      ? m4.normalize(m4.scaleVector(m4.subtractVectors(
+          m4.scaleVector(dp12, duv13[1]),
+          m4.scaleVector(dp13, duv12[1]),
+        ), f))
+      : [1, 0, 0];
+
+    tangents.push(...tangent, ...tangent, ...tangent);
+  }
+
+  return tangents;
+}
