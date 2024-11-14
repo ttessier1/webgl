@@ -33,5 +33,9 @@
 			<h3>Object File Parser - III</h3>
 			<p>This tutorial output is an extension to the Object File Parser and includes advanced parsing.</p>
 		</div></a>
+		<a href="tutorial8/index.php"><div class="panel">
+			<h3>Mtl File Parser - I</h3>
+			<p>This tutorial output is an extension to the Object File Parser and includes materials parsing such as to display textures and proper coloring based on material files.</p>
+		</div></a>
 	</body>
 </html>
