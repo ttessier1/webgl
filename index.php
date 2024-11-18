@@ -49,6 +49,14 @@
 			<h3>Scene Renderer - III</h3>
 			<p>This tutorial output is the extension to Scene Rendering and rendering a cubemap </p>
 		</div></a>
+		<a href="tutorial12/index.php"><div class="panel">
+			<h3>Scene Renderer - IV</h3>
+			<p>This tutorial output is the extension to Scene Rendering and rendering an environment map</p>
+		</div></a>
+		<a href="tutorial13/index.php"><div class="panel">
+			<h3>Scene Renderer - V</h3>
+			<p>This tutorial output is the extension to Scene Rendering and rendering an environment map along with a skybox using a cube map</p>
+		</div></a>
 		
 	</body>
 </html>

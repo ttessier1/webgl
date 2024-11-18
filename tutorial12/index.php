@@ -14,53 +14,39 @@
 		<script type="text/javascript" src="js/tutorial.js"></script>
 		<script type="text/javascript" src="js/mtlparser.js"></script>
 		<script type="text/javascript" src="js/objparser.js"></script>
-		<script id="vertex-shader-id" type="nojs">
+		<script id="vertex-shader-env-id" type="nojs">
 attribute vec4 a_position;
-attribute vec4 a_color;
+attribute vec3 a_normal;
 
-uniform mat4 u_matrix;
+uniform mat4 u_projection;
+uniform mat4 u_view;
+uniform mat4 u_world;
 
-varying vec4 v_color;
+varying vec3 v_worldPosition;
+varying vec3 v_worldNormal;
 
 void main(){
-	gl_Position = u_matrix * a_position;
-	v_color = a_color;
-}
+	gl_Position = u_projection * u_view * u_world * a_position;
+	v_worldPosition = (u_world * a_position).xyz;
+	v_worldNormal = mat3(u_world)*a_normal;
+}		
 		</script>
-		<script id="vertex-shader-sky-id" type="nojs">
-attribute vec4 a_position;
+		<script id="fragment-shader-env-id" type="nojs">
+precision highp float;
 
-varying vec4 v_position;
+varying vec3 v_worldPosition;
+varying vec3 v_worldNormal;
 
-void main(){
-	v_position = a_position;
-	gl_Position = a_position;
-	gl_Position.z = 1.0;
-}
-		</script>
-		<script id="fragment-shader-id" type="nojs">
-precision mediump float;
+uniform samplerCube u_texture;
 
-varying vec4 v_color;
-
-uniform vec4 u_colorMult;
-uniform vec4 u_colorOffset;
+uniform vec3 u_worldCameraPosition;
 
 void main(){
-	gl_FragColor = v_color * u_colorMult + u_colorOffset;	
-}
-		</script>
-		<script id="fragment-shader-sky-id" type=nojs">
-precision mediump float;
+	vec3 worldNormal = normalize(v_worldNormal);
+	vec3 eyeToSurfaceDir = normalize(v_worldPosition- u_worldCameraPosition);
+	vec3 direction = reflect(eyeToSurfaceDir,worldNormal);
 
-uniform samplerCube u_skybox;
-uniform mat4 u_viewDirectionProjectionInverse;
-
-varying vec4 v_position;
-
-void main(){
-	vec4 t = u_viewDirectionProjectionInverse * v_position;
-	gl_FragColor = textureCube(u_skybox,normalize(t.xyz/t.w));
+	gl_FragColor = textureCube(u_texture,direction);
 }
 		</script>
 	</head>
